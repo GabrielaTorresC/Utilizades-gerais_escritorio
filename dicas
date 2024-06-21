@@ -66,7 +66,3 @@ with ZipFile(zip_file_name, 'w') as zipf:
         for file in files:
             file_path = os.path.join(root, file)
             zipf.write(file_path, os.path.relpath(file_path, final_dir))
-            print(f"{file_path} adicionado ao {zip_file_name}")
-
-print(f'Todos os arquivos foram movidos para o diretório {final_dir}')
-print(f'Todos os arquivos foram compactados em {zip_file_name}')
