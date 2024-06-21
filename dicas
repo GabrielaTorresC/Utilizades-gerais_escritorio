@@ -1,0 +1,72 @@
+!pip install requests beautifulsoup4
+import requests
+from bs4 import BeautifulSoup
+import os
+from shutil import move
+from zipfile import ZipFile
+from urllib.parse import urljoin
+
+# URL da página de licenciamento
+url = 'https://url_desejada/para_zip/'
+
+# Diretório onde os arquivos serão baixados
+temp_download_dir = 'temp_downloads'
+final_dir = 'final_files'
+
+# Criar diretórios se não existirem
+os.makedirs(temp_download_dir, exist_ok=True)
+os.makedirs(final_dir, exist_ok=True)
+
+# Fazer a requisição à página
+response = requests.get(url)
+response.raise_for_status()
+
+# Analisar o HTML da página
+soup = BeautifulSoup(response.content, 'html.parser')
+
+# Encontrar todos os links de arquivos
+file_links = soup.find_all('a', href=True)  # Obtém todas as tags <a> com atributo href
+
+# Extensões de arquivos a serem baixados. Nessa parte, basta inserir '.extensão_arquivo_desejado'
+valid_extensions = ('.jpg', '.png', '.xml') #aqui tem 3 exemplos da forma correta de especificar as extensões
+
+# Lista para armazenar os caminhos dos arquivos baixados
+downloaded_files = []
+
+# Baixar cada arquivo
+for link in file_links:
+    file_url = urljoin(url, link['href'])  # Construir URL completo
+    if file_url.endswith(valid_extensions):  # Filtrar arquivos por extensão
+        file_name = os.path.join(temp_download_dir, file_url.split('/')[-1])
+        print(f"Baixando {file_name}...")
+
+        # Fazer a requisição para baixar o arquivo
+        file_response = requests.get(file_url)
+        if file_response.status_code == 200:
+            # Salvar o arquivo no diretório de download
+            with open(file_name, 'wb') as file:
+                file.write(file_response.content)
+
+            # Adicionar o caminho do arquivo à lista
+            downloaded_files.append(file_name)
+            print(f"{file_name} baixado com sucesso!")
+        else:
+            print(f"Falha ao baixar {file_name} (Status code: {file_response.status_code})")
+
+# Mover os arquivos para a pasta final
+for file_path in downloaded_files:
+    final_path = os.path.join(final_dir, os.path.basename(file_path))
+    move(file_path, final_path)
+    print(f"{file_path} movido para {final_path}")
+
+# Opcional: Compactar os arquivos em um arquivo ZIP
+zip_file_name = 'nome_do_arquivo.zip'
+with ZipFile(zip_file_name, 'w') as zipf:
+    for root, dirs, files in os.walk(final_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            zipf.write(file_path, os.path.relpath(file_path, final_dir))
+            print(f"{file_path} adicionado ao {zip_file_name}")
+
+print(f'Todos os arquivos foram movidos para o diretório {final_dir}')
+print(f'Todos os arquivos foram compactados em {zip_file_name}')
